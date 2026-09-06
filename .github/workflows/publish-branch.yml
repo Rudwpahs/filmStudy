@@ -20,8 +20,24 @@ jobs:
       - name: Restore packaged site
         shell: bash
         run: |
-          awk '/cat > \/tmp\/formpath-prestudy.zip.b64/{flag=1;next}/^          EOF$/{flag=0}flag{sub(/^          /,"");print}' .github/workflows/pages.yml > /tmp/formpath-prestudy.zip.b64
-          base64 -d /tmp/formpath-prestudy.zip.b64 > /tmp/formpath-prestudy.zip
+          python3 - <<'PY'
+          import base64
+          import pathlib
+          import re
+
+          text = pathlib.Path('.github/workflows/pages.yml').read_text(encoding='utf-8')
+          match = re.search(
+              r"cat > /tmp/formpath-prestudy\.zip\.b64 <<'EOF'\n(?P<data>.*?)\n\s*EOF",
+              text,
+              flags=re.S,
+          )
+          if not match:
+              raise SystemExit('embedded site bundle not found')
+          encoded = ''.join(match.group('data').split())
+          payload = base64.b64decode(encoded, validate=True)
+          pathlib.Path('/tmp/formpath-prestudy.zip').write_bytes(payload)
+          print(f'restored {len(payload)} bytes')
+          PY
           rm -rf /tmp/formpath-unpacked /tmp/formpath-site
           mkdir -p /tmp/formpath-unpacked /tmp/formpath-site
           unzip -q /tmp/formpath-prestudy.zip -d /tmp/formpath-unpacked
