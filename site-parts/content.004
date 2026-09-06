@@ -1,0 +1,65 @@
+  {
+    id: 'm11', slug: 'pytorch-fundamentals', title: 'PyTorch fundamentals for FormPath-oriented experiments', estimatedMinutes: 45,
+    summary: 'tensor, forward pass, loss, gradient, train/eval의 최소 개념을 FormPath 실험 관점에서 배운다.', prerequisites: ['m10'],
+    objectives: ['tensor가 무엇인지 설명한다.', 'loss와 gradient의 역할을 안다.', '학습 실험과 제품 inference/규칙 기반 파이프라인을 구분한다.'],
+    concepts: [
+      { heading: 'Tensor는 숫자 배열 + 계산 그래프의 중심', body: 'PyTorch tensor는 모델 입력, 출력, 파라미터를 표현한다. autograd는 연산 그래프를 따라 loss에 대한 gradient를 계산한다.' },
+      { heading: '학습 루프의 최소 구조', body: '입력→모델→예측→loss→backward→optimizer step. 하지만 FormPath 현재 제품의 모든 계산이 신경망 학습이라는 뜻은 아니다. pose model, 규칙/기하 파이프라인, 향후 학습 모델을 구분해야 한다.' },
+    ],
+    sources: [source('Learn the Basics', 'PyTorch', PYTORCH, 'documentation')],
+    lab: { id: 'l11', title: 'tensor 연산을 순수 Python으로 미리 이해하기', packages: [], starterCode: `x=[1.0,2.0,3.0]\nw=[0.2,-0.1,0.5]\ny=sum(a*b for a,b in zip(x,w))\ntarget=2.0\nloss=(y-target)**2\nprint("prediction", round(y,3))\nprint("squared loss", round(loss,3))`, expectedOutput: 'prediction 1.5\nsquared loss 0.25', explanation: '브라우저 Pyodide에는 PyTorch wheel을 강제하지 않는다. 동일 개념을 순수 Python으로 확인한 뒤 공식 PyTorch 튜토리얼과 연결한다.' },
+    quiz: { id: 'q11', questions: [
+      q('q11a','tensor는 주로 무엇을 표현하나?',['다차원 수치 데이터','URL만','이미지 파일명만','Git branch'],'다차원 수치 데이터','입력/출력/파라미터의 기본 구조다.'),
+      q('q11b','loss는?',['예측과 목표의 차이를 수치화','FPS','카메라 위치','로그인 상태'],'예측과 목표의 차이를 수치화','최적화가 줄이려는 목적함수다.'),
+      q('q11c','autograd의 핵심 역할은?',['gradient 계산','영상 촬영','파일 압축','pose landmark 직접 생성'],'gradient 계산','연산 그래프를 따라 미분을 계산한다.'),
+      q('q11d','모든 FormPath 코드가 PyTorch 모델인가?',['아니오','예','iOS만 예','Python이면 예'],'아니오','기하/규칙/계약/pose inference 등 여러 층이 있다.'),
+      q('q11e','test 데이터로 학습 gradient를 계산해야 하나?',['아니오','예','항상','작은 데이터면'],'아니오','평가 데이터의 독립성을 깨뜨린다.'),
+    ]},
+    formPathConnection: { label: '향후 학습 모델을 현재 파이프라인과 분리해 사고하기', path: 'docs/PROJECT_MAP.md', explanation: '제품 runtime, 검증 asset, evidence, 연구 도구를 서로 다른 구역으로 구분한다.', evidenceClass: 'product-hypothesis' },
+  },
+  {
+    id: 'm12', slug: 'validation-failure-reading-pipeline', title: 'Validation, failure cases, and reading the real FormPath pipeline', estimatedMinutes: 50,
+    summary: '정상 예시보다 failure mode·계약·검증 증거를 중심으로 실제 FormPath 코드를 읽는다.', prerequisites: ['m6','m7','m8','m10','m11'],
+    objectives: ['synthetic와 real-video validation을 구분한다.', 'typed failure/recapture가 왜 중요한지 설명한다.', 'FormPath 프로젝트 맵을 따라 evidence→pipeline→save boundary를 추적한다.'],
+    concepts: [
+      { heading: '성공 숫자보다 실패 계약', body: '같은 시점, mirror, phase 검출 실패, 낮은 landmark 품질, 비정상 geometry처럼 언제 결과를 만들지 말아야 하는지가 제품 안전성의 핵심이다.' },
+      { heading: 'synthetic ≠ real video', body: '합성 fixture에서 수학/계약/경계가 통과해도 실제 iPhone 촬영·MediaPipe·조명·가림·인체 다양성까지 검증됐다는 뜻은 아니다. 2026-09-06 현재 PR #4의 물리 iPhone smoke gate는 code_complete_but_real_video_validation_blocked / real_video_fixture_unavailable 상태로 기록되어 있다. evidence class를 그대로 표시해야 한다.' },
+      { heading: '코드를 call graph로 읽기', body: '입력 landmark → phase alignment → cross-view geometry → reconstruction → uncertainty/quality gate → save envelope 순으로 읽고 각 단계가 실패할 때 partial output을 남기는지 확인한다.' },
+    ],
+    sources: [source('FormPath Project Map', 'Rudwpahs · GitHub', `${FORMPATH}docs/PROJECT_MAP.md`, 'project-doc'), source('Real-video validation runbook', 'Rudwpahs · GitHub', `${FORMPATH}docs/real-video-validation-runbook.md`, 'project-doc')],
+    lab: { id: 'l12', title: '간단한 invariant gate 만들기', packages: [], starterCode: `cases=[("good",.12,True),("duplicate",.001,True),("phase_fail",.12,False)]\nfor name,view_distance,phase_ok in cases:\n    if not phase_ok: verdict="recapture: phase_detection_failed"\n    elif view_distance<.04: verdict="recapture: duplicate_view_projection"\n    else: verdict="admit"\n    print(name, "->", verdict)`, expectedOutput: 'good→admit, duplicate→recapture, phase_fail→recapture', explanation: '실제 threshold를 재검증 없이 일반화하지 말고, 실패가 typed verdict로 드러나야 한다는 연습.' },
+    quiz: { id: 'q12', questions: [
+      q('q12a','synthetic fixture 통과가 곧 real-video validation인가?',['아니오','예','항상','200개면 예'],'아니오','실환경 오차원을 포함하지 않는다.'),
+      q('q12b','품질 게이트 실패 시 좋은 동작은?',['typed recapture와 no partial save','억지로 결과 저장','confidence 1로 설정','오류 숨김'],'typed recapture와 no partial save','실패 원인을 명시하고 불완전 결과를 막는다.'),
+      q('q12c','같은 시점 두 영상을 fusion하면?',['cross-view geometry gate가 막아야 함','완벽한 깊이','항상 허용','FPS만 확인'],'cross-view geometry gate가 막아야 함','독립 projection 증거가 부족하다.'),
+      q('q12d','real-video validation이 아직 막혀 있다면 UI/문서에서?',['그 사실을 그대로 표시','완료로 표시','합성 결과로 대체','숨김'],'그 사실을 그대로 표시','evidence class를 과장하지 않는다.'),
+      q('q12e','pipeline을 읽을 때 저장 경계까지 보는 이유는?',['실패 시 partial output 누출 여부 확인','UI 색상','동영상 길이','폰트'],'실패 시 partial output 누출 여부 확인','계산 실패가 persistence까지 전파되는 계약을 확인한다.'),
+    ]},
+    formPathConnection: { label: '프로젝트 전체 맵과 검증 게이트', path: 'docs/PROJECT_MAP.md', explanation: 'runtime·asset·evidence·tool 경계를 따라 실제 구현을 읽고 현재 real-video validation 상태를 분리한다.', evidenceClass: 'real-video-validation' },
+  },
+];
+
+export const evidenceClasses = [
+  ['math','수학적 항등식/기하 관계'],
+  ['implementation','현재 코드가 실제로 하는 동작'],
+  ['synthetic-validation','합성 fixture·sweep로 검증된 범위'],
+  ['real-video-validation','실제 촬영 데이터에서 확인된 범위 또는 현재 미완료 상태'],
+  ['biomechanics','peer-reviewed 인간 움직임 연구 근거'],
+  ['product-hypothesis','아직 검증이 필요한 제품/코칭 가설'],
+];
+
+export const glossary = [
+  ['Landmark','pose 모델이 프레임에서 추정한 신체 keypoint. 실제 해부학적 관절 중심 ground truth와 동일하다고 가정하지 않는다.'],
+  ['Projection','3D 구조가 카메라 영상 평면에 맺힌 2D 표현. 깊이 정보 일부가 사라진다.'],
+  ['Shot phase','별도 촬영의 절대 시각 대신 슛 진행 단계를 정규화한 좌표.'],
+  ['Triangulation','보정된 여러 카메라의 기하와 대응 관측으로 3D 점을 복원하는 방식. 현재 FormPath 비동시 두 시점 추정과 구분한다.'],
+  ['Uncertainty','관측/정렬/모델 오차 때문에 결과가 가질 수 있는 변동 범위에 대한 표현.'],
+  ['Data leakage','평가 시점에 알 수 없어야 할 정보가 학습·전처리·모델 선택에 들어가 성능을 부풀리는 현상.'],
+];
+
+export function getModuleById(id) { return modules.find((m) => m.id === id); }
+export function getModuleBySlug(slug) { return modules.find((m) => m.slug === slug); }
+export function getLab(labId) { return modules.find((m) => m.lab.id === labId)?.lab; }
+export function getModuleByLab(labId) { return modules.find((m) => m.lab.id === labId); }
+export function getQuiz(quizId) { return modules.find((m) => m.quiz.id === quizId)?.quiz; }
+export function getModuleByQuiz(quizId) { return modules.find((m) => m.quiz.id === quizId); }
