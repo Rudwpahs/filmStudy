@@ -1,0 +1,90 @@
+:root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #f8fafb;
+  --ink: #17202a;
+  --muted: #66727f;
+  --line: #dfe5ea;
+  --accent: #176b87;
+  --accent-2: #0d5068;
+  --accent-soft: #e8f4f7;
+  --success: #24734c;
+  --success-soft: #eaf6ef;
+  --warning: #925f0a;
+  --warning-soft: #fff5df;
+  --danger: #9a3e44;
+  --shadow: 0 12px 34px rgba(24, 37, 48, 0.08);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; background: var(--bg); }
+a { color: inherit; }
+button, textarea, input { font: inherit; }
+button { cursor: pointer; }
+code, pre, textarea { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+
+.site-header {
+  position: sticky; top: 0; z-index: 40;
+  display: flex; align-items: center; gap: 26px;
+  min-height: 66px; padding: 0 28px;
+  background: rgba(255,255,255,.94); border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(14px);
+}
+.brand { display: flex; align-items: center; gap: 11px; text-decoration: none; font-weight: 800; letter-spacing: -.02em; }
+.brand-mark { width: 32px; height: 32px; border: 1px solid var(--ink); border-radius: 10px; display: grid; place-items: center; font-size: 12px; background: var(--ink); color: white; }
+.brand small { display: block; color: var(--muted); font-size: 10px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; }
+.top-nav { display: flex; gap: 4px; margin-left: auto; }
+.top-nav a { padding: 9px 12px; border-radius: 9px; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 650; }
+.top-nav a:hover, .top-nav a[aria-current="page"] { color: var(--ink); background: var(--surface-2); }
+.header-boundary { font-size: 11px; color: var(--muted); border-left: 1px solid var(--line); padding-left: 18px; max-width: 220px; line-height: 1.35; }
+
+.dashboard { max-width: 1180px; margin: 0 auto; padding: 56px 28px 90px; }
+.eyebrow { color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+h1 { font-size: clamp(34px, 5vw, 62px); line-height: 1.02; letter-spacing: -.045em; margin: 12px 0 18px; }
+h2 { font-size: 25px; letter-spacing: -.025em; margin: 0 0 12px; }
+h3 { font-size: 17px; letter-spacing: -.015em; margin: 0 0 8px; }
+p { line-height: 1.72; }
+.dashboard-intro { max-width: 780px; font-size: 18px; color: var(--muted); margin-bottom: 30px; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 15px; border-radius: 10px; border: 1px solid var(--line); background: white; color: var(--ink); text-decoration: none; font-weight: 720; font-size: 14px; }
+.btn:hover { border-color: #b9c4cc; transform: translateY(-1px); }
+.btn-primary { background: var(--ink); color: white; border-color: var(--ink); }
+.btn-accent { background: var(--accent); color: white; border-color: var(--accent); }
+.btn-quiet { background: transparent; }
+
+.metric-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 34px 0; }
+.metric { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px; box-shadow: 0 4px 18px rgba(24,37,48,.04); }
+.metric strong { display: block; font-size: 30px; letter-spacing: -.04em; }
+.metric span { color: var(--muted); font-size: 13px; }
+.progress-track { height: 7px; background: #e5eaee; border-radius: 999px; overflow: hidden; margin-top: 14px; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: inherit; }
+
+.truth-card { margin: 22px 0 44px; border: 1px solid #eed39c; background: var(--warning-soft); border-radius: 15px; padding: 18px 20px; }
+.truth-card strong { display: block; margin-bottom: 5px; }
+.truth-card p { margin: 0; color: #6d510f; font-size: 14px; }
+
+.module-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.module-card { display: flex; flex-direction: column; min-height: 215px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; text-decoration: none; transition: .15s ease; }
+.module-card:hover { border-color: #b8c6ce; box-shadow: var(--shadow); transform: translateY(-2px); }
+.module-card.done { border-color: #c9e3d3; background: linear-gradient(180deg, var(--surface), #fbfefc); }
+.module-number { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 12px; font-weight: 750; margin-bottom: 20px; }
+.status-dot { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); font-size: 11px; }
+.done .status-dot { background: var(--success); border-color: var(--success); color: white; }
+.module-card p { color: var(--muted); font-size: 13px; margin: 7px 0 0; }
+.module-card .card-footer { margin-top: auto; color: var(--accent); font-size: 12px; font-weight: 750; }
+
+.learning-shell { display: grid; grid-template-columns: 270px minmax(0, 1fr) 300px; max-width: 1500px; margin: 0 auto; min-height: calc(100vh - 66px); }
+.roadmap { padding: 26px 18px; border-right: 1px solid var(--line); background: #f8fafb; position: sticky; top: 66px; align-self: start; height: calc(100vh - 66px); overflow: auto; }
+.roadmap-title { padding: 0 8px 15px; font-size: 12px; color: var(--muted); font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.roadmap a { display: grid; grid-template-columns: 27px 1fr; gap: 8px; align-items: start; padding: 10px 8px; margin: 2px 0; border-radius: 10px; text-decoration: none; color: #596674; font-size: 12px; line-height: 1.35; }
+.roadmap a:hover { background: white; color: var(--ink); }
+.roadmap a[aria-current="page"] { background: var(--accent-soft); color: var(--accent-2); font-weight: 760; }
+.roadmap-index { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; border: 1px solid #cad3da; font-size: 10px; background: white; }
+.roadmap a.done .roadmap-index { background: var(--success); color: white; border-color: var(--success); }
+
+.lesson-main { min-width: 0; padding: 44px clamp(24px, 5vw, 70px) 90px; background: var(--surface); }
+.lesson-header { max-width: 820px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+.lesson-kicker { display: flex; gap: 10px; align-items: center; color: var(--muted); font-size: 12px; font-weight: 700; }
