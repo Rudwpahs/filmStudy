@@ -1,0 +1,48 @@
+name: Deploy FormPath Prestudy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Restore packaged site
+        shell: bash
+        run: |
+          awk '/cat > \/tmp\/formpath-prestudy.zip.b64/{flag=1;next}/^          EOF$/{flag=0}flag{sub(/^          /,"");print}' .github/workflows/pages.yml > /tmp/formpath-prestudy.zip.b64
+          base64 -d /tmp/formpath-prestudy.zip.b64 > /tmp/formpath-prestudy.zip
+          rm -rf _site /tmp/formpath-unpacked
+          mkdir -p _site /tmp/formpath-unpacked
+          unzip -q /tmp/formpath-prestudy.zip -d /tmp/formpath-unpacked
+          cp -a /tmp/formpath-unpacked/formpath-prestudy/. _site/
+          rm -rf _site/tests _site/docs _site/.gitignore _site/start-formpath-prestudy.bat _site/serve.sh
+          touch _site/.nojekyll
+          test -f _site/index.html
+          test -f _site/app.mjs
+          test -f _site/content.mjs
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
