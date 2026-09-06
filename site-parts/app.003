@@ -1,0 +1,63 @@
+  worker.addEventListener('message', (event) => {
+    const pending = pendingRuns.get(event.data.id);
+    if (!pending) return;
+    clearTimeout(pending.timer); pendingRuns.delete(event.data.id);
+    if (event.data.type === 'result') pending.resolve(event.data);
+    else pending.reject(new Error(event.data.message || 'Python execution failed'));
+  });
+  worker.addEventListener('error', (event) => {
+    workerUnavailable = true;
+    for (const pending of pendingRuns.values()) { clearTimeout(pending.timer); pending.reject(new Error(event.message || 'Worker failed')); }
+    pendingRuns.clear(); worker?.terminate(); worker = null;
+  });
+  return worker;
+}
+function runPython(code, packages) {
+  return new Promise((resolve,reject) => {
+    const id = crypto.randomUUID();
+    const w = createWorker();
+    const timer = setTimeout(() => { pendingRuns.delete(id); workerUnavailable=true; worker?.terminate(); worker=null; reject(new Error('Python runtime timed out')); }, 20000);
+    pendingRuns.set(id,{resolve,reject,timer});
+    w.postMessage({ id, code, packages });
+  });
+}
+
+window.addEventListener('hashchange', () => { mobileRoadmapOpen=false; render(); });
+app.addEventListener('click', async (event) => {
+  const target = event.target.closest('[data-action]');
+  if (!target) return;
+  const action = target.dataset.action;
+  if (action === 'toggle-roadmap') { mobileRoadmapOpen=!mobileRoadmapOpen; render(); return; }
+  if (action === 'reset-code') {
+    const m = getModuleByLab(target.dataset.labId); if (!m) return;
+    progress = setCodeDraft(progress,m.lab.id,m.lab.starterCode); saveProgress(localStorage,progress); render(); return;
+  }
+  if (action === 'retry-python') { workerUnavailable=false; worker?.terminate(); worker=null; render(); return; }
+  if (action === 'run-python') {
+    const m = getModuleByLab(target.dataset.labId); if (!m) return;
+    const editor=document.querySelector('#code-editor'); const output=document.querySelector('#python-output'); const status=document.querySelector('#runtime-status');
+    status.textContent='Loading / running Python in a Web Worker…'; output.textContent=''; target.disabled=true;
+    try { const result=await runPython(editor.value,m.lab.packages); workerUnavailable=false; output.textContent=[result.stdout,result.stderr].filter(Boolean).join('\n') || '(실행 완료 · 출력 없음)'; status.textContent='Run complete.'; }
+    catch (error) { workerUnavailable=true; output.textContent=`Python runtime unavailable\n${error.message}\n\nExpected:\n${m.lab.expectedOutput}`; status.textContent='Runtime unavailable. Reading mode remains available.'; }
+    finally { target.disabled=false; }
+    return;
+  }
+  if (action === 'mark-complete') {
+    progress=markComplete(progress,target.dataset.moduleId); saveProgress(localStorage,progress);
+    const idx=modules.findIndex(m=>m.id===target.dataset.moduleId); const next=modules[idx+1];
+    if (next) location.hash=`#/learn/${next.slug}`; else location.hash='#/';
+  }
+});
+app.addEventListener('input', (event) => {
+  if (event.target.matches('#code-editor')) { progress=setCodeDraft(progress,event.target.dataset.labId,event.target.value); saveProgress(localStorage,progress); }
+});
+app.addEventListener('submit', (event) => {
+  if (!event.target.matches('#quiz-form')) return;
+  event.preventDefault();
+  const form=event.target; const m=getModuleByQuiz(form.dataset.quizId); if (!m) return;
+  const answers=Object.fromEntries(new FormData(form).entries()); const result=scoreQuiz(m.quiz,answers);
+  progress=recordQuizAttempt(progress,m.quiz.id,result.score,result.total); saveProgress(localStorage,progress);
+  quizSession={quizId:m.quiz.id,...result}; render();
+});
+
+if (!location.hash) location.hash='#/'; else render();
