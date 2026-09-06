@@ -1,0 +1,70 @@
+import { evidenceClasses, glossary, modules, getModuleBySlug, getModuleByLab, getModuleByQuiz } from './content.mjs';
+import { loadProgress, saveProgress, markComplete, recordQuizAttempt, setLastVisited, setCodeDraft } from './progress.mjs';
+import { scoreQuiz } from './quiz.mjs';
+
+const app = document.querySelector('#app');
+let progress = loadProgress(localStorage);
+let mobileRoadmapOpen = false;
+let quizSession = null;
+let worker = null;
+let workerUnavailable = false;
+let pendingRuns = new Map();
+
+function esc(value = '') {
+  return String(value).replace(/[&<>'"]/g, (ch) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[ch]));
+}
+function attr(value = '') { return esc(value); }
+function route() {
+  const raw = location.hash.replace(/^#\/?/, '');
+  const parts = raw.split('/').filter(Boolean);
+  if (!parts.length) return { page: 'dashboard' };
+  if (parts[0] === 'reference') return { page: 'reference' };
+  if (['learn','lab','quiz'].includes(parts[0])) return { page: parts[0], id: parts[1] || '' };
+  return { page: 'dashboard' };
+}
+function currentRecommended() {
+  return modules.find((m) => !progress.completedModuleIds.includes(m.id)) || modules[modules.length - 1];
+}
+function navHref(kind) {
+  const module = currentRecommended();
+  if (kind === 'learn') return `#/learn/${module.slug}`;
+  if (kind === 'lab') return `#/lab/${module.lab.id}`;
+  if (kind === 'quiz') return `#/quiz/${module.quiz.id}`;
+  return '#/';
+}
+function header(active) {
+  return `<header class="site-header">
+    <a class="brand" href="#/" aria-label="FormPath Prestudy dashboard"><span class="brand-mark">FP</span><span>FormPath Prestudy<small>Engineering learning track</small></span></a>
+    <nav class="top-nav" aria-label="Primary navigation">
+      ${[['dashboard','Dashboard','#/'],['learn','Learn',navHref('learn')],['lab','Lab',navHref('lab')],['quiz','Quiz',navHref('quiz')],['reference','Reference','#/reference']].map(([id,label,href]) => `<a href="${href}" ${active===id?'aria-current="page"':''}>${label}</a>`).join('')}
+    </nav>
+    <div class="header-boundary">교육용 companion · 실제 사용자 영상/Firestore/인증 없음</div>
+  </header>`;
+}
+function roadmap(currentModule) {
+  return `<nav class="roadmap" aria-label="Learning roadmap"><div class="roadmap-title">12-module roadmap</div>${modules.map((m, i) => {
+    const done = progress.completedModuleIds.includes(m.id);
+    const current = currentModule?.id === m.id;
+    return `<a class="${done?'done':''}" href="#/learn/${m.slug}" ${current?'aria-current="page"':''}><span class="roadmap-index">${done?'✓':i+1}</span><span>${esc(m.title)}</span></a>`;
+  }).join('')}</nav>`;
+}
+function contextPanel(module, mobile=false) {
+  const c = module.formPathConnection;
+  return `<aside class="${mobile?'mobile-context':'context-panel'}" aria-label="Why this matters to FormPath">
+    <div class="context-label">Why this matters to FormPath</div>
+    <h3>${esc(c.label)}</h3><span class="evidence-badge">${esc(c.evidenceClass)}</span>
+    <p>${esc(c.explanation)}</p>
+    <a class="code-path" target="_blank" rel="noreferrer" href="https://github.com/Rudwpahs/shooting-profile-coach-ios/blob/main/${attr(c.path)}">${esc(c.path)} ↗</a>
+  </aside>`;
+}
+function mobileRoadmap(module) {
+  return `<button class="btn roadmap-toggle" data-action="toggle-roadmap" aria-expanded="${mobileRoadmapOpen}" aria-controls="mobile-roadmap">Open learning roadmap</button>
+    <div id="mobile-roadmap" class="mobile-roadmap ${mobileRoadmapOpen?'open':''}" ${mobileRoadmapOpen?'':'hidden'}><div class="mobile-roadmap-inner"><button class="btn" data-action="toggle-roadmap">Close roadmap</button>${roadmap(module)}</div></div>`;
+}
+function shell(module, active, mainHtml) {
+  return `${header(active)}<div class="learning-shell">${roadmap(module)}<main class="lesson-main">${mobileRoadmap(module)}${mainHtml}${contextPanel(module,true)}</main>${contextPanel(module)}</div>`;
+}
+function sourceCards(sources) {
+  return `<div class="source-list">${sources.map((s) => `<a class="source-card" target="_blank" rel="noreferrer" href="${attr(s.url)}"><div><strong>${esc(s.title)}</strong><br><span>${esc(s.publisher)}</span></div><span>${esc(s.sourceType)} ↗</span></a>`).join('')}</div>`;
+}
+function dashboard() {
