@@ -17,36 +17,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Restore packaged site
+      - name: Assemble verified static site
         shell: bash
         run: |
-          python3 - <<'PY'
-          import base64
-          import pathlib
-          import re
-
-          text = pathlib.Path('.github/workflows/pages.yml').read_text(encoding='utf-8')
-          match = re.search(
-              r"cat > /tmp/formpath-prestudy\.zip\.b64 <<'EOF'\n(?P<data>.*?)\n\s*EOF",
-              text,
-              flags=re.S,
-          )
-          if not match:
-              raise SystemExit('embedded site bundle not found')
-          encoded = ''.join(match.group('data').split())
-          payload = base64.b64decode(encoded, validate=True)
-          pathlib.Path('/tmp/formpath-prestudy.zip').write_bytes(payload)
-          print(f'restored {len(payload)} bytes')
-          PY
-          rm -rf /tmp/formpath-unpacked /tmp/formpath-site
-          mkdir -p /tmp/formpath-unpacked /tmp/formpath-site
-          unzip -q /tmp/formpath-prestudy.zip -d /tmp/formpath-unpacked
-          cp -a /tmp/formpath-unpacked/formpath-prestudy/. /tmp/formpath-site/
-          rm -rf /tmp/formpath-site/tests /tmp/formpath-site/docs /tmp/formpath-site/.gitignore /tmp/formpath-site/start-formpath-prestudy.bat /tmp/formpath-site/serve.sh
+          rm -rf /tmp/formpath-site
+          mkdir -p /tmp/formpath-site
+          cp index.html progress.mjs quiz.mjs pyodide-worker.mjs /tmp/formpath-site/
+          cat site-parts/styles.001 site-parts/styles.002 > /tmp/formpath-site/styles.css
+          cat site-parts/content.001 site-parts/content.002 site-parts/content.003 site-parts/content.004 > /tmp/formpath-site/content.mjs
+          cat site-parts/app.001 site-parts/app.002 site-parts/app.003 > /tmp/formpath-site/app.mjs
           touch /tmp/formpath-site/.nojekyll
-          test -f /tmp/formpath-site/index.html
-          test -f /tmp/formpath-site/app.mjs
-          test -f /tmp/formpath-site/content.mjs
+          node --check /tmp/formpath-site/content.mjs
+          node --check /tmp/formpath-site/app.mjs
+          node --check /tmp/formpath-site/progress.mjs
+          node --check /tmp/formpath-site/quiz.mjs
+          node --check /tmp/formpath-site/pyodide-worker.mjs
+          grep -q "id: 'm12'" /tmp/formpath-site/content.mjs
+          grep -q "NOT calibrated triangulation" /tmp/formpath-site/content.mjs
+          test -s /tmp/formpath-site/styles.css
 
       - name: Update gh-pages branch
         shell: bash
